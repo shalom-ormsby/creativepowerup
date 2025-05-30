@@ -2,24 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P5.js Kaleidoscope</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> <title>P5.js Kaleidoscope</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.js"></script>
     <style>
-        /* Basic styling to ensure canvas fills the window and no scrollbars */
+        /* Basic styling to ensure canvas fills the window/iframe and no scrollbars */
         body {
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Prevents scrollbars */
+            overflow: hidden; /* Prevents scrollbars on the body */
             background-color: #000; /* Sets a black background for the page */
-            display: flex; /* For centering canvas if needed, though p5 does it well */
+            display: flex; 
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            height: 100vh; /* Ensures body takes full viewport/iframe height */
+            /* Prevent pull-to-refresh and other touch interferences on the body */
+            overscroll-behavior: none; 
         }
         /* Ensure the canvas is displayed as a block element */
         canvas {
             display: block;
+            touch-action: none; /* Recommended for canvases that handle their own touch input */
         }
     </style>
 </head>
@@ -35,7 +37,7 @@
         let colorHue = 0;
 
         function setup() {
-            // Create a canvas that fills the browser window
+            // Create a canvas that fills the browser window or the iframe it's in
             createCanvas(windowWidth, windowHeight);
             // Set angle mode to degrees for easier rotation calculations
             angleMode(DEGREES);
@@ -50,85 +52,82 @@
 
         function draw() {
             // Apply a semi-transparent background to create fading trails
-            // Reducing the alpha value makes the trails last longer.
             background(0, 0, 0, 1.5); 
 
             // Translate the origin to the center of the canvas
-            // This makes rotation and reflection math simpler
             translate(width / 2, height / 2);
 
-            // Only draw if the mouse is within the canvas bounds
+            // Only draw if the mouse (or touch) is within the canvas bounds
+            // p5.js maps touch X/Y to mouseX/Y
             if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
-                // Calculate mouse position relative to the center of the canvas
                 let mx = mouseX - width / 2;
                 let my = mouseY - height / 2;
-                // Calculate previous mouse position relative to the center
                 let pmx = pmouseX - width / 2;
                 let pmy = pmouseY - height / 2;
 
-                // Calculate mouse speed
                 let speed = dist(mouseX, mouseY, pmouseX, pmouseY);
-                // Map mouse speed to stroke weight (thicker lines for faster movement)
-                // The 'true' at the end constrains the value within the min/max range
                 let sw = map(speed, 0, 30, 1, 15, true);
                 strokeWeight(sw);
 
-                // Update hue for color cycling
                 colorHue = (colorHue + 0.75) % 360;
-                // Map mouse X position to saturation (more saturated towards edges)
                 let saturation = map(abs(mx), 0, width / 2, 60, 100);
-                // Map mouse Y position to brightness (brighter towards bottom)
                 let brightness = map(my, -height / 2, height / 2, 70, 100);
                 
-                // Set the stroke color with full opacity
-                stroke(colorHue, saturation, brightness, 100); // Changed alpha from 85 to 100
+                stroke(colorHue, saturation, brightness, 100); 
 
-                // Loop through the number of symmetry segments
                 for (let i = 0; i < symmetry; i++) {
-                    // Save current transformation state
                     push();
-                    // Rotate by the segment angle multiplied by the current segment index
                     rotate(i * angle);
-                    // Draw a line from the previous mouse position to the current mouse position
                     line(mx, my, pmx, pmy);
 
-                    // Create a reflection
-                    // Save current transformation state again for the reflection
                     push();
-                    // Scale by -1 in the Y direction to reflect across the segment's X-axis
                     scale(1, -1);
-                    // Draw the same line, which will now be reflected
                     line(mx, my, pmx, pmy);
-                    // Restore transformation state before reflection
                     pop();
 
-                    // Restore transformation state before rotation
                     pop();
                 }
             }
         }
 
+        // Handle touch start events
+        function touchStarted() {
+          // Check if touch is within canvas
+          if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+            return false; // Prevent default browser actions (like page scroll)
+          }
+          return true; // Allow default actions if touch is outside canvas
+        }
+
+        // Handle touch move events
+        function touchMoved() {
+          // Check if touch is within canvas
+          if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+            return false; // Prevent default browser actions (like page scroll or pinch zoom)
+          }
+          return true; // Allow default actions if touch is outside canvas
+        }
+
         // Adjust canvas size and reset background when the window is resized
         function windowResized() {
             resizeCanvas(windowWidth, windowHeight);
-            background(0); // Clear the canvas
-            // Recalculate angle in case symmetry changed before resize (though less likely here)
-            angle = 360 / symmetry;
+            background(0); 
+            angle = 360 / symmetry; 
         }
 
-        // Handle keyboard interactions
+        // Handle keyboard interactions (will primarily work on desktop)
         function keyPressed() {
             if (key === 'c' || key === 'C') {
-                background(0); // Clear the canvas
+                background(0);
             } else if (key === '+' || key === '=') {
-                symmetry++; // Increase symmetry
-                angle = 360 / symmetry; // Recalculate angle
-                background(0); // Clear canvas to show new symmetry pattern
+                symmetry++; 
+                angle = 360 / symmetry; 
+                background(0); 
             } else if (key === '-' || key === '_') {
-                if (symmetry > 1) { // Ensure symmetry doesn't go below 1
-                    symmetry--; // Decrease symmetry
-                    angle = 360 / symmetry; // Recalculate angle
-                    background(0); // Clear canvas
+                if (symmetry > 1) { 
+                    symmetry--; 
+                    angle = 360 / symmetry; 
+                    background(0); 
                 }
             }
         }
