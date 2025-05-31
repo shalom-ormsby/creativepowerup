@@ -11,23 +11,36 @@
             font-family: 'Press Start 2P', cursive;
             background-color: #1a1a2e; /* Dark blue background */
             color: #e0e0e0; /* Light gray text */
-            display: flex;
+            display: flex; /* Use flexbox for overall layout */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             overflow: hidden; /* Prevent scrolling */
-            flex-direction: column;
             padding: 20px;
             box-sizing: border-box;
+            position: relative; /* Needed for absolute positioning of title */
         }
 
-        h1 {
+        .rotated-title {
             color: #00f0ff; /* Cyan title */
             text-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff;
-            margin-bottom: 20px;
             font-size: 2.5em;
-            text-align: center;
+            white-space: nowrap; /* Prevent text wrapping */
+            position: absolute; /* Position absolutely relative to body */
+            left: -10px; /* Adjusted to be 10px further left */
+            top: 50%; /* Center vertically initially */
+            transform: translateY(-50%) rotate(-90deg); /* Rotate 90 degrees counter-clockwise and center */
+            transform-origin: center center; /* Ensure rotation is around its center */
+            z-index: 10; /* Ensure it's above other elements if needed */
+        }
+
+        .main-game-wrapper { /* New wrapper for game-container and controls */
+            display: flex;
+            flex-direction: row; /* Arrange game and controls horizontally */
+            gap: 30px; /* Space between game area and controls */
+            align-items: center; /* Align items vertically in the center */
+            margin-left: 100px; /* Space for the rotated title */
         }
 
         .game-container {
@@ -91,13 +104,13 @@
         }
 
         .controls {
-            margin-top: 20px;
             background-color: #3a3a5a;
             padding: 15px;
             border-radius: 10px;
             border: 2px solid #00f0ff;
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
             text-align: center;
+            /* No margin-top here, handled by flex gap */
         }
 
         .controls p {
@@ -154,12 +167,20 @@
         }
 
         /* Responsive adjustments */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.8em;
+        @media (max-width: 900px) { /* Adjusted breakpoint for horizontal layout */
+            .rotated-title {
+                display: none; /* Hide rotated title on smaller screens */
+            }
+            body {
+                flex-direction: column; /* Stack elements vertically on small screens */
+                padding: 10px;
+            }
+            .main-game-wrapper {
+                flex-direction: column; /* Stack game and controls vertically */
+                margin-left: 0; /* Remove left margin when title is hidden */
+                gap: 20px;
             }
             .game-container {
-                flex-direction: column;
                 padding: 15px;
             }
             .game-area {
@@ -189,17 +210,19 @@
     </style>
 </head>
 <body>
-    <h1>TETRIS</h1>
+    <div class="rotated-title">TETRIS</div>
 
-    <div class="game-container">
-        <div class="game-area">
-            <canvas id="gameCanvas"></canvas>
-            <div class="game-info">
-                <h2>Score: <span id="score">0</span></h2>
-                <h2>Lines: <span id="lines">0</span></h2>
-                <h2>Level: <span id="level">1</span></h2>
-                <h2>Next Piece:</h2>
-                <canvas id="nextPieceCanvas" width="120" height="120"></canvas>
+    <div class="main-game-wrapper">
+        <div class="game-container">
+            <div class="game-area">
+                <canvas id="gameCanvas"></canvas>
+                <div class="game-info">
+                    <h2>Score: <span id="score">0</span></h2>
+                    <h2>Lines: <span id="lines">0</span></h2>
+                    <h2>Level: <span id="level">1</span></h2>
+                    <h2>Next Piece:</h2>
+                    <canvas id="nextPieceCanvas" width="100" height="100"></canvas>
+                </div>
             </div>
         </div>
         <div class="controls">
@@ -241,7 +264,7 @@
         // Game board dimensions
         const COLS = 10;
         const ROWS = 20;
-        const BLOCK_SIZE = 30; // Size of each block in pixels
+        const BLOCK_SIZE = 25; // Decreased block size for a smaller game
 
         // Set canvas dimensions based on block size and board dimensions
         gameCanvas.width = COLS * BLOCK_SIZE;
@@ -319,6 +342,8 @@
                 color: '#ff0000' // Red
             }
         };
+
+        // --- Core Game Functions (Ensuring order for definition) ---
 
         // Initialize the game board with empty blocks (0)
         function initBoard() {
@@ -551,56 +576,6 @@
 
             animationFrameId = requestAnimationFrame(gameLoop);
         }
-
-        // Event listener for keyboard input
-        document.addEventListener('keydown', (e) => {
-            if (gameOver || paused) return;
-
-            const piece = currentPiece;
-            if (!piece) return; // No piece to move
-
-            switch (e.key) {
-                case 'ArrowLeft':
-                    if (!checkCollision(piece, -1, 0)) {
-                        piece.x--;
-                    }
-                    break;
-                case 'ArrowRight':
-                    if (!checkCollision(piece, 1, 0)) {
-                        piece.x++;
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (!checkCollision(piece, 0, 1)) {
-                        piece.y++;
-                    } else {
-                        lockPiece();
-                    }
-                    score += 1; // Soft drop bonus
-                    scoreDisplay.textContent = score;
-                    break;
-                case 'ArrowUp':
-                case 'x': // 'x' key for rotation
-                    rotatePiece();
-                    break;
-                case ' ': // Spacebar for hard drop
-                    e.preventDefault(); // Prevent page scrolling
-                    while (!checkCollision(piece, 0, 1)) {
-                        piece.y++;
-                        score += 2; // Hard drop bonus
-                    }
-                    lockPiece();
-                    scoreDisplay.textContent = score;
-                    break;
-                case 'p': // 'P' key for pause
-                    togglePause();
-                    break;
-            }
-            // Redraw immediately after movement
-            gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-            drawBoard();
-            drawPiece(gameCtx, currentPiece);
-        });
 
         // Toggle pause state
         function togglePause() {
