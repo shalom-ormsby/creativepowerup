@@ -2,7 +2,6 @@
 
 **Creative Powerup** is a community of creative technologists, solopreneurs, builders, and experimenters who are using AI to power up their creations and contribute to the greater good for all. 
 
----
 
 ## 🧠 Why It Exists
 
@@ -19,7 +18,6 @@ Through collaboration, community support, coaching, and the ethical use of techn
 
 This is our testbed for making this a reality.
 
----
 
 ## 🎯 What This Is
 
@@ -30,7 +28,6 @@ A modular, open sandbox for:
 
 Everything here is meant to be **tinkered with**, **forked**, **broken**, and **rebuilt better**.
 
----
 
 ## 🗺️ Folder Map
 
@@ -40,4 +37,3 @@ Everything here is meant to be **tinkered with**, **forked**, **broken**, and **
 | `/creative-sandbox` | HTML experiments, generative art, and weird prototypes |
 | `/personas` | Edge-case simulators and friction testers for sharper thinking |
 
----
