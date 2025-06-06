@@ -6,7 +6,7 @@
 ## 🧠 Why It Exists
 
 Creative Powerup is a community-powered space for bold, heart-led creators.
-We use AI not to replace human creativity — but to amplify it.
+We use AI not to replace human creativity, but to amplify it.
 
 Through collaboration, community support, coaching, and the ethical use of technology, we support people shaping a future where:
 
