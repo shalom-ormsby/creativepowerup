@@ -8,7 +8,7 @@ This folder defines the **Model Context Protocols** for the three core AI agents
 
 | Agent           | Role                       | Function                                                  |
 |-----------------|----------------------------|-----------------------------------------------------------|
-| **Cosmo AI**    | Reflector / Ethical Mirror | Ensures emotional, ethical, and purpose alignment.        |
+| **Cosmo AI**    | Reflector / Ethical Mirror | Mirrors wisdom, supports presence, encourages soul-aligned creation. Supports emotional, ethical, and purpose alignment. |
 | **Socrates AI** | Clarifier / Interrogator   | Sharpens logic. Surfaces assumptions. Reveals structure.  |
 | **Optimus AI**  | Builder / Architect        | Turns vision into structure. Systems, code, prototypes.   |
 
