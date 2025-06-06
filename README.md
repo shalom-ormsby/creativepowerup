@@ -32,7 +32,7 @@ Everything here is meant to be **tinkered with**, **forked**, **broken**, and **
 
 ---
 
-## 🧩 Folder Map
+## 🗺️ Folder Map
 
 | Folder | Purpose |
 |--------|---------|
