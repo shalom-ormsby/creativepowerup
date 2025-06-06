@@ -12,7 +12,9 @@ We use AI not to replace human creativity — but to amplify it.
 Through collaboration, community support, coaching, and the ethical use of technology, we support people shaping a future where:
 
 🌍 Technology serves and supports humanity
+
 🎨 Human creativity flourishes and drives change
+
 🚀 Visionaries create and amplify positive changes to build a more abundant world for all
 
 This is our testbed for making this a reality.
