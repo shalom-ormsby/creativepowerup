@@ -48,213 +48,85 @@
   </style>
 </head>
 <body>
-<div id="info">SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span> | LEVEL: <span id="level">1</span></div>
-<canvas id="gameCanvas" width="800" height="600"></canvas>
-<div id="controls">ARROW KEYS: Move | SPACE: Fire | R: Restart</div>
-<div id="gameOver">GAME OVER<br /><small>Press R to restart</small></div>
-
+  <div id="info">SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span> | LEVEL: <span id="level">1</span></div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="controls">ARROW KEYS: Move | SPACE: Fire | R: Restart</div>
+  <div id="gameOver">GAME OVER<br /><small>Press R to restart</small></div>
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-// Game State
 let score = 0, lives = 3, level = 1;
-let bullets = [], enemyBullets = [], explosions = [], enemies = [];
-let keys = {}, diveTimer = 0, lastShot = 0;
-let gameRunning = true, canControl = false, respawnTimer = 0;
-const player = { x: 0, y: 0, w: 40, h: 30, speed: 6, color: '#0f0' };
+let player = { x: 380, y: 540, w: 40, h: 30, speed: 6, color: '#0f0' };
+let bullets = [], enemyBullets = [], enemies = [], explosions = [];
+let canControl = false, gameRunning = true, respawnTimer = 0, lastShot = 0;
+let keys = {}, diveTimer = 0;
 
-// Sound Pool
-const soundPools = {};
-function loadSound(name, path, poolSize = 5) {
-  soundPools[name] = [];
-  for (let i = 0; i < poolSize; i++) {
-    const audio = new Audio(path);
-    audio.preload = 'auto';
-    soundPools[name].push(audio);
-  }
-}
-function playSound(name) {
-  const pool = soundPools[name];
-  if (!pool) return;
-  for (const audio of pool) {
-    if (audio.paused || audio.ended) {
-      audio.currentTime = 0;
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-      break;
-    }
-  }
-}
+let sounds = {};
 function initSounds() {
-  loadSound('shoot', 'sounds/shoot.wav');
-  loadSound('playerExplode', 'sounds/player-explode.wav');
-  loadSound('enemyDive', 'sounds/enemy-dive.wav');
+  sounds = {
+    shoot: new Audio('sounds/shoot.wav'),
+    playerExplode: new Audio('sounds/player-explode.wav'),
+    enemyDive: new Audio('sounds/enemy-dive.wav')
+  };
+  document.removeEventListener('keydown', onFirstInput);
 }
-
-// Input
-document.addEventListener('keydown', e => keys[e.code] = true);
-document.addEventListener('keyup', e => keys[e.code] = false);
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space') { e.preventDefault(); shoot(); }
-  if (e.code === 'KeyR') resetGame();
-}, { once: false });
-
-// Init
-initSounds();
-createEnemies();
-startRespawn();
-gameLoop();
-
+document.addEventListener('keydown', onFirstInput);
+function onFirstInput(e) { initSounds(); }
+function playSound(name) {
+  if (!sounds[name]) return;
+  const s = sounds[name].cloneNode();
+  s.volume = 0.4;
+  s.play();
+}
 function createEnemies() {
   enemies = [];
-  const configs = [
-    { rows: 2, cols: 8, y0: 50, color: '#4080ff', pts: 400 },
-    { rows: 2, cols: 10, y0: 120, color: '#f44', pts: 160 },
-    { rows: 3, cols: 10, y0: 200, color: '#ff0', pts: 80 }
+  const setups = [
+    { rows: 2, cols: 8, y0: 50, type: 'boss', color: '#4080ff', pts: 400 },
+    { rows: 2, cols: 10, y0: 120, type: 'red', color: '#f44', pts: 160 },
+    { rows: 4, cols: 10, y0: 200, type: 'yellow', color: '#ff0', pts: 80 },
   ];
-  configs.forEach(cfg => {
-    for (let r = 0; r < cfg.rows; r++) {
-      for (let c = 0; c < cfg.cols; c++) {
+  setups.forEach(s => {
+    for (let r = 0; r < s.rows; r++) {
+      for (let c = 0; c < s.cols; c++) {
         enemies.push({
           x: 100 + c * 60,
-          y: cfg.y0 + r * 40,
+          y: s.y0 + r * 40,
           ox: 100 + c * 60,
-          oy: cfg.y0 + r * 40,
+          oy: s.y0 + r * 40,
           w: 30, h: 25,
-          color: cfg.color,
-          pts: cfg.pts,
-          alive: true,
-          diving: false,
-          diveSpeed: 0,
-          diveAngle: 0,
-          shootProb: cfg.color === '#4080ff' ? 0.004 : 0.002
+          type: s.type, color: s.color, pts: s.pts,
+          alive: true, diving: false, diveSpeed: 0, diveAngle: 0,
+          shootProb: s.type === 'boss' ? 0.004 : 0.002
         });
       }
     }
   });
 }
-
 function startRespawn() {
   canControl = false;
   respawnTimer = 120;
-  bullets = [];
-  enemyBullets = [];
-  player.x = canvas.width / 2 - player.w / 2;
-  player.y = canvas.height - 60;
+  bullets = []; enemyBullets = [];
+  enemies.forEach(e => { if (e.alive) e.y = e.oy; });
+  player.x = 380; player.y = 540;
 }
-
-function shoot() {
+function updateRespawn() {
+  if (respawnTimer > 0) { respawnTimer--; if (respawnTimer <= 0) canControl = true; }
+}
+function shootPlayer() {
   if (!canControl || Date.now() - lastShot < 200) return;
   lastShot = Date.now();
   bullets.push({ x: player.x + 18, y: player.y, w: 4, h: 10, sp: 8, color: '#fff' });
   playSound('shoot');
 }
-
-function update() {
-  if (!gameRunning) return;
-  if (respawnTimer > 0) {
-    respawnTimer--;
-    if (respawnTimer === 0) canControl = true;
-  }
-
-  if (canControl) {
-    if (keys['ArrowLeft']) player.x = Math.max(0, player.x - player.speed);
-    if (keys['ArrowRight']) player.x = Math.min(canvas.width - player.w, player.x + player.speed);
-  }
-
-  bullets.forEach(b => b.y -= b.sp);
-  bullets = bullets.filter(b => b.y + b.h > 0);
-
-  enemyBullets.forEach(b => b.y += b.sp);
-  enemyBullets = enemyBullets.filter(b => b.y < canvas.height);
-
-  updateEnemyDiving();
-
-  bullets.forEach((b, i) => {
-    enemies.forEach((e, j) => {
-      if (e.alive && b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
-        e.alive = false;
-        bullets.splice(i, 1);
-        score += e.pts;
-        createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#f80');
-        playSound('enemyDive');
-      }
-    });
-  });
-
-  enemyBullets.forEach((b, i) => {
-    if (b.x < player.x + player.w && b.x + b.w > player.x && b.y < player.y + player.h && b.y + b.h > player.y) {
-      enemyBullets.splice(i, 1);
-      playerDies();
-    }
-  });
-
-  enemies.forEach(e => {
-    if (e.alive && e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) {
-      e.alive = false;
-      playerDies();
-    }
-  });
-
-  if (!enemies.some(e => e.alive)) {
-    level++;
-    createEnemies();
-    startRespawn();
-  }
-
-  updateExplosions();
-  updateInfo();
-}
-
-function playerDies() {
-  if (!canControl) return;
-  createExplosion(player.x + player.w / 2, player.y + player.h / 2, '#ff0', 40);
-  playSound('playerExplode');
-  lives--;
-  if (lives > 0) startRespawn();
-  else {
-    canControl = false;
-    gameRunning = false;
-    document.getElementById('gameOver').style.display = 'block';
-  }
-}
-
-function updateEnemyDiving() {
-  diveTimer++;
-  if (diveTimer > 240 && Math.random() < 0.01) {
-    const pool = enemies.filter(e => e.alive && !e.diving);
-    if (pool.length) {
-      let e = pool[Math.floor(Math.random() * pool.length)];
-      e.diving = true;
-      e.diveSpeed = 1.5;
-      e.diveAngle = Math.random() * Math.PI / 3 - Math.PI / 6;
-      playSound('enemyDive');
-    }
-  }
-  enemies.forEach(e => {
-    if (e.diving) {
-      e.x += Math.sin(e.diveAngle) * e.diveSpeed;
-      e.y += e.diveSpeed;
-      if (Math.random() < 0.01) {
-        enemyBullets.push({ x: e.x + e.w / 2 - 2, y: e.y + e.h, w: 4, h: 8, sp: 2, color: '#f44' });
-      }
-      if (e.y > canvas.height + 50) {
-        e.diving = false;
-        e.x = e.ox;
-        e.y = e.oy;
-      }
-    } else {
-      if (Math.random() < e.shootProb) {
-        enemyBullets.push({ x: e.x + e.w / 2 - 2, y: e.y + e.h, w: 4, h: 8, sp: 2, color: '#f44' });
-      }
-    }
-  });
-}
-
 function createExplosion(x, y, color = '#f00', count = 20) {
   for (let i = 0; i < count; i++) {
-    explosions.push({ x, y, dx: (Math.random() - 0.5) * 5, dy: (Math.random() - 0.5) * 5, life: 40, color });
+    explosions.push({
+      x, y,
+      dx: (Math.random() - 0.5) * 5,
+      dy: (Math.random() - 0.5) * 5,
+      life: 40,
+      color
+    });
   }
 }
 function updateExplosions() {
@@ -262,9 +134,23 @@ function updateExplosions() {
   explosions.forEach(e => { e.x += e.dx; e.y += e.dy; });
 }
 function drawExplosions() {
-  explosions.forEach(e => { ctx.fillStyle = e.color; ctx.fillRect(e.x, e.y, 3, 3); });
+  explosions.forEach(e => {
+    ctx.fillStyle = e.color;
+    ctx.fillRect(e.x, e.y, 3, 3);
+  });
 }
-
+function playerDies() {
+  if (!canControl) return;
+  createExplosion(player.x + player.w / 2, player.y + player.h / 2, '#ff0', 40);
+  playSound('playerExplode');
+  lives--;
+  updateUI();
+  if (lives > 0) startRespawn();
+  else {
+    canControl = false; gameRunning = false;
+    document.getElementById('gameOver').style.display = 'block';
+  }
+}
 function drawPlayer() {
   if (respawnTimer > 0 && Math.floor(respawnTimer / 10) % 2 === 0) return;
   ctx.fillStyle = player.color;
@@ -282,22 +168,116 @@ function drawPlayer() {
   ctx.fillRect(player.x + 4, player.y + 20, 2, 2);
   ctx.fillRect(player.x + 34, player.y + 20, 2, 2);
 }
-function drawEnemies() {
+function drawEnemy(e) {
+  ctx.fillStyle = e.color;
+  if (e.pts === 400) {
+    ctx.fillRect(e.x + 6, e.y + 5, 18, 15);
+    ctx.fillRect(e.x, e.y + 8, 6, 8);
+    ctx.fillRect(e.x + 24, e.y + 8, 6, 8);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(e.x + 8, e.y + 8, 3, 3);
+    ctx.fillRect(e.x + 19, e.y + 8, 3, 3);
+    ctx.fillStyle = e.color;
+    ctx.fillRect(e.x + 14, e.y, 2, 5);
+  } else if (e.pts === 160) {
+    ctx.fillRect(e.x + 8, e.y + 8, 14, 10);
+    ctx.fillRect(e.x + 2, e.y + 10, 6, 4);
+    ctx.fillRect(e.x + 22, e.y + 10, 6, 4);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(e.x + 10, e.y + 10, 2, 6);
+    ctx.fillRect(e.x + 18, e.y + 10, 2, 6);
+  } else {
+    ctx.fillRect(e.x + 10, e.y + 8, 10, 12);
+    ctx.fillRect(e.x + 4, e.y + 12, 6, 4);
+    ctx.fillRect(e.x + 20, e.y + 12, 6, 4);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(e.x + 12, e.y + 10, 2, 2);
+    ctx.fillRect(e.x + 16, e.y + 10, 2, 2);
+  }
+}
+function updateEnemies() {
+  diveTimer++;
+  if (diveTimer > 240 && Math.random() < 0.01) {
+    let pool = enemies.filter(e => e.alive && !e.diving);
+    if (pool.length) {
+      let d = pool[Math.floor(Math.random() * pool.length)];
+      d.diving = true;
+      d.diveSpeed = 1.5;
+      d.diveAngle = Math.random() * Math.PI / 3 - Math.PI / 6;
+      playSound('enemyDive');
+    }
+  }
   enemies.forEach(e => {
     if (!e.alive) return;
-    ctx.fillStyle = e.color;
-    ctx.fillRect(e.x, e.y, e.w, e.h);
+    if (e.diving) {
+      e.x += Math.sin(e.diveAngle) * e.diveSpeed;
+      e.y += e.diveSpeed;
+      if (e.y > canvas.height + 50) {
+        e.diving = false;
+        e.x = e.ox;
+        e.y = e.oy - 200;
+      }
+    } else {
+      if (Math.random() < e.shootProb) {
+        enemyBullets.push({ x: e.x + e.w / 2 - 2, y: e.y + e.h, w: 4, h: 8, sp: 2, color: '#f44' });
+      }
+    }
   });
 }
+function update() {
+  if (!gameRunning) return;
+  updateRespawn();
+  if (canControl) {
+    if (keys['ArrowLeft']) player.x = Math.max(0, player.x - player.speed);
+    if (keys['ArrowRight']) player.x = Math.min(canvas.width - player.w, player.x + player.speed);
+  }
+  bullets.forEach(b => b.y -= b.sp);
+  bullets = bullets.filter(b => b.y + b.h > 0);
+  enemyBullets.forEach(b => b.y += b.sp);
+  enemyBullets = enemyBullets.filter(b => b.y < canvas.height);
+  bullets.forEach((b, i) => {
+    enemies.forEach(e => {
+      if (e.alive && b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+        e.alive = false; bullets.splice(i, 1);
+        createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#f80');
+        score += e.pts; updateUI();
+      }
+    });
+  });
+  enemyBullets.forEach((b, i) => {
+    if (b.x < player.x + player.w && b.x + b.w > player.x && b.y < player.y + player.h && b.y + b.h > player.y) {
+      enemyBullets.splice(i, 1); playerDies();
+    }
+  });
+  enemies.forEach(e => {
+    if (e.alive && e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) {
+      e.alive = false; playerDies();
+    }
+  });
+  if (!enemies.some(e => e.alive)) {
+    level++; createEnemies(); startRespawn(); updateUI();
+  }
+  updateEnemies();
+  updateExplosions();
+}
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawPlayer();
   bullets.forEach(b => { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); });
   enemyBullets.forEach(b => { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); });
-  drawEnemies();
+  enemies.forEach(e => { if (e.alive) drawEnemy(e); });
   drawExplosions();
 }
-function updateInfo() {
+function loop() {
+  update(); draw(); requestAnimationFrame(loop);
+}
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') e.preventDefault(), shootPlayer();
+  if (e.code === 'KeyR') resetGame();
+});
+document.addEventListener('keyup', e => keys[e.code] = false);
+function updateUI() {
   document.getElementById('score').textContent = score;
   document.getElementById('lives').textContent = lives;
   document.getElementById('level').textContent = level;
@@ -307,14 +287,9 @@ function resetGame() {
   bullets = []; enemyBullets = []; explosions = [];
   gameRunning = true;
   document.getElementById('gameOver').style.display = 'none';
-  createEnemies();
-  startRespawn();
+  createEnemies(); startRespawn(); updateUI();
 }
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
-}
+resetGame(); loop();
 </script>
 </body>
 </html>
