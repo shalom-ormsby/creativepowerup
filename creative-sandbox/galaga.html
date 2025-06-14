@@ -59,65 +59,38 @@
 
 <script>
 let sounds = {};
-let soundsInitialized = false;
+let soundPools = {};
 
-function initSounds() {
-  sounds = {
-    shoot: new Audio('sounds/shoot.wav'),
-    playerExplode: new Audio('sounds/player-explode.wav'),
-    enemyDive: new Audio('sounds/enemy-dive.wav')
-  };
-  soundsInitialized = true;
+function loadSound(name, path, poolSize = 5) {
+  soundPools[name] = [];
+  for (let i = 0; i < poolSize; i++) {
+    const audio = new Audio(path);
+    audio.preload = 'auto';
+    soundPools[name].push(audio);
+  }
 }
-
-document.addEventListener('keydown', function onFirstInput(e) {
-  if (!soundsInitialized) initSounds();
-}, { once: true });
 
 function playSound(name) {
-  if (!sounds[name]) return;
-  const sound = sounds[name].cloneNode();
-  sound.volume = 0.5;
-  sound.play();
-}
-
-function shootPlayer() {
-  if (!canControl || Date.now() - lastShot < 200) return;
-  lastShot = Date.now();
-  bullets.push({ x: player.x + 18, y: player.y, w: 4, h: 10, sp: 8, color: '#fff' });
-  playSound('shoot');
-}
-
-function playerDies() {
-  if (!canControl) return;
-  createExplosion(player.x + player.w / 2, player.y + player.h / 2, '#ff0', 40);
-  playSound('playerExplode');
-  lives--;
-  updateInfo();
-  bullets = [];
-  enemyBullets = [];
-  if (lives > 0) startRespawn();
-  else {
-    canControl = false;
-    gameRunning = false;
-    document.getElementById('gameOver').style.display = 'block';
-  }
-}
-
-function updateEnemyDiving() {
-  diveTimer++;
-  if (diveTimer > 240 && Math.random() < 0.01) {
-    const pool = enemies.filter(e => e.alive && !e.diving);
-    if (pool.length) {
-      let d = pool[Math.floor(Math.random() * pool.length)];
-      d.diving = true;
-      d.diveSpeed = 1.5;
-      d.diveAngle = Math.random() * Math.PI / 3 - Math.PI / 6;
-      playSound('enemyDive');
+  const pool = soundPools[name];
+  if (!pool) return;
+  for (const audio of pool) {
+    if (audio.paused || audio.ended) {
+      audio.currentTime = 0;
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+      break;
     }
   }
-  // ... continue dive logic
 }
+
+function initSounds() {
+  loadSound('shoot', 'sounds/shoot.wav');
+  loadSound('playerExplode', 'sounds/player-explode.wav');
+  loadSound('enemyDive', 'sounds/enemy-dive.wav');
+}
+
+// Dummy boot init (assumes game setup follows)
+initSounds();
 </script>
 </body>
 </html>
