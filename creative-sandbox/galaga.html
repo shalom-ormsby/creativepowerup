@@ -67,9 +67,6 @@ function initSounds() {
     playerExplode: new Audio('sounds/player-explode.wav'),
     enemyDive: new Audio('sounds/enemy-dive.wav')
   };
-  for (let key in sounds) {
-    sounds[key].volume = 0.5;
-  }
   soundsInitialized = true;
 }
 
@@ -77,25 +74,24 @@ document.addEventListener('keydown', function onFirstInput(e) {
   if (!soundsInitialized) initSounds();
 }, { once: true });
 
-// Now inside your shootPlayer() function, call:
+function playSound(name) {
+  if (!sounds[name]) return;
+  const sound = sounds[name].cloneNode();
+  sound.volume = 0.5;
+  sound.play();
+}
+
 function shootPlayer() {
   if (!canControl || Date.now() - lastShot < 200) return;
   lastShot = Date.now();
   bullets.push({ x: player.x + 18, y: player.y, w: 4, h: 10, sp: 8, color: '#fff' });
-  if (sounds.shoot) {
-    sounds.shoot.currentTime = 0;
-    sounds.shoot.play();
-  }
+  playSound('shoot');
 }
 
-// Inside your playerDies() function, call:
 function playerDies() {
   if (!canControl) return;
   createExplosion(player.x + player.w / 2, player.y + player.h / 2, '#ff0', 40);
-  if (sounds.playerExplode) {
-    sounds.playerExplode.currentTime = 0;
-    sounds.playerExplode.play();
-  }
+  playSound('playerExplode');
   lives--;
   updateInfo();
   bullets = [];
@@ -108,7 +104,6 @@ function playerDies() {
   }
 }
 
-// Inside your updateEnemyDiving() when a dive starts:
 function updateEnemyDiving() {
   diveTimer++;
   if (diveTimer > 240 && Math.random() < 0.01) {
@@ -118,10 +113,7 @@ function updateEnemyDiving() {
       d.diving = true;
       d.diveSpeed = 1.5;
       d.diveAngle = Math.random() * Math.PI / 3 - Math.PI / 6;
-      if (sounds.enemyDive) {
-        sounds.enemyDive.currentTime = 0;
-        sounds.enemyDive.play();
-      }
+      playSound('enemyDive');
     }
   }
   // ... continue dive logic
