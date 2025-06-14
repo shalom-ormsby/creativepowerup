@@ -227,4 +227,41 @@
     }
 
     function draw() {
-      ctx
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawPlayer();
+      bullets.forEach(b=>{
+        ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      });
+      enemyBullets.forEach(b=>{
+        ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      });
+      drawEnemies();
+      drawExplosions();
+    }
+
+    function loop(){
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function updateInfo(){
+      document.getElementById('score').textContent = score;
+      document.getElementById('lives').textContent = lives;
+      document.getElementById('level').textContent = level;
+    }
+
+    function resetGame(){
+      score = 0; lives = 3; level = 1;
+      bullets = []; enemyBullets = []; explosions = [];
+      createEnemies();
+      startRespawn();
+      updateInfo();
+    }
+
+    resetGame();
+    loop();
+  </script>
+</body>
+</html>
