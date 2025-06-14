@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Galaga – Fixed with Dive & Respawn</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galaga with Sound</title>
   <style>
     body { margin:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh; overflow:hidden; font-family:Courier,monospace; }
     #gameCanvas { border:2px solid #0f0; background:#000; }
@@ -16,12 +17,20 @@
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <div id="controls">←/→: Move | SPACE: Shoot | R: Restart</div>
   <div id="gameOver">GAME OVER<br><small>Press R to restart</small></div>
+
 <script>
+// === Audio Preload ===
+const sounds = {
+  shoot: new Audio('sounds/shoot.wav'),
+  playerExplode: new Audio('sounds/player-explode.wav'),
+  enemyDive: new Audio('sounds/enemy-dive.wav')
+};
+
 const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
 let score=0, lives=3, level=1;
 let bullets=[], enemyBullets=[], enemies=[], explosions=[];
 let canControl=false, respawnTimer=0, gameRunning=true;
-let keys={}, lastShot=0, enemyMoveTimer=0, diveTimer=0, enemyShootTimer=0;
+let keys={}, lastShot=0, enemyMoveTimer=0, diveTimer=0;
 
 const player = { x:0,y:0,w:40,h:30,speed:6,color:'#0f0' };
 
@@ -88,6 +97,7 @@ function shootPlayer() {
   if (!canControl || Date.now() - lastShot < 200) return;
   lastShot = Date.now();
   bullets.push({ x:player.x+18, y:player.y, w:4, h:10, sp:8, color:'#fff' });
+  sounds.shoot.currentTime = 0; sounds.shoot.play();
 }
 
 function updateEnemyDiving() {
@@ -99,6 +109,7 @@ function updateEnemyDiving() {
       d.diving = true;
       d.diveSpeed = 1.5;
       d.diveAngle = Math.random()*Math.PI/3 - Math.PI/6;
+      sounds.enemyDive.currentTime = 0; sounds.enemyDive.play();
     }
   }
   enemies.forEach(e => {
@@ -251,6 +262,7 @@ function draw() {
 function playerDies() {
   if (!canControl) return;
   createExplosion(player.x+player.w/2,player.y+player.h/2,'#ff0',40);
+  sounds.playerExplode.currentTime = 0; sounds.playerExplode.play();
   lives--; updateInfo();
   bullets=[]; enemyBullets=[];
   if (lives > 0) startRespawn();
