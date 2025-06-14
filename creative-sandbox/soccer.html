@@ -25,7 +25,75 @@
     const enemy1 = { x:650, y:150, r:18, speed:1.5, color:'#D32F2F', hasBall:false };
     const enemy2 = { x:700, y:350, r:18, speed:1.4, color:'#F44336', hasBall:false };
 
-    // Other game logic remains unchanged...
+    // Modified AI behavior
+    function updateAI(teammate, enemies, dt) {
+      const roles = [teammate].concat(enemies);
+      roles.forEach(ai => {
+        let tx = ai.x, ty = ai.y;
+
+        if (ai.hasBall) {
+          // Red team shoots on blue goal
+          const goal = ai.color === '#D32F2F' || ai.color === '#F44336' ? goals.blue : goals.red;
+
+          // Pass logic before shooting
+          if (!ai.passCount) ai.passCount = 0;
+
+          if (ai.passCount < 2 && Math.random() < 0.02) {
+            const teammate = enemies.find(p => p !== ai);
+            if (teammate && dist(ai, teammate) < 200) {
+              const angle = Math.atan2(teammate.y - ai.y, teammate.x - ai.x);
+              ball.vx = Math.cos(angle) * 8;
+              ball.vy = Math.sin(angle) * 8;
+              ai.hasBall = false;
+              ball.owner = null;
+              ai.passCount++;
+              return;
+            }
+          } else if (ai.passCount >= 2 && dist(ai, goal) < 250 && Math.random() < 0.03) {
+            shoot(ai, goal, 13);
+            ai.passCount = 0;
+            return;
+          }
+
+          tx = goal.x - 100;
+          ty = goal.y + goal.h / 2;
+        } else {
+          tx = ball.x; ty = ball.y;
+        }
+
+        const d = dist(ai, {x:tx, y:ty});
+        if (d > 5) {
+          ai.x += ((tx - ai.x) / d) * ai.speed;
+          ai.y += ((ty - ai.y) / d) * ai.speed;
+        }
+        clamp(ai);
+
+        // Steal ball on contact
+        if (!ai.hasBall && dist(ai, ball) < ai.r + ball.r + 5) {
+          ball.owner = ai;
+          ai.hasBall = true;
+        }
+
+        if (ai.hasBall) {
+          ball.x = ai.x;
+          ball.y = ai.y;
+        }
+      });
+    }
+
+    // Ball possession update (also supports steal)
+    function checkPossession() {
+      let nearest = null, md = Infinity;
+      players.forEach(p => {
+        const d = dist(p, ball);
+        if (d < p.r + ball.r + 5 && d < md) md = d, nearest = p;
+      });
+      players.forEach(p => p.hasBall = false);
+      if (nearest) {
+        ball.owner = nearest;
+        nearest.hasBall = true;
+      } else ball.owner = null;
+    }
   </script>
 </body>
 </html>
