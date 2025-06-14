@@ -1,18 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Galaga – Respawn & Effects</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galaga – Respawn Fixed</title>
   <style>
-    body { margin:0; padding:0; background:#000; display:flex; justify-content:center; align-items:center; height:100vh; overflow:hidden; font-family:'Courier New',monospace; }
-    #gameCanvas { border:2px solid #00ff00; background:#000; }
-    #info { position:absolute; top:10px; left:50%; transform:translateX(-50%); color:#0f0; font-size:20px; z-index:10; }
-    #controls { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:#0f0; font-size:14px; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+    #gameCanvas {
+      border: 2px solid #00ff00;
+      background: #000;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #0f0;
+      font-size: 20px;
+      z-index: 10;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #0f0;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <div id="info">SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span> | LEVEL: <span id="level">1</span></div>
+  <div id="info">
+    SCORE: <span id="score">0</span> | LIVES: <span id="lives">3</span> | LEVEL: <span id="level">1</span>
+  </div>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <div id="controls">←/→: Move | SPACE: Shoot | R: Restart</div>
 
@@ -20,83 +50,92 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    let score = 0, lives = 3, level = 1;
-    let bullets = [], enemyBullets = [], enemies = [], explosions = [];
-    let canPlayerControl = false, respawnTimer = 0;
+    let score = 0,
+        lives = 3,
+        level = 1,
+        bullets = [],
+        enemyBullets = [],
+        enemies = [],
+        explosions = [],
+        canPlayerControl = false,
+        respawnTimer = 0,
+        keys = {};
 
-    const player = { x:0, y:0, w:40, h:30, speed:6, color:'#0f0' };
+    const player = { x: 0, y: 0, w: 40, h: 30, speed: 6, color: '#0f0' };
 
-    document.addEventListener('keydown', e => {
-      keys[e.code] = true;
-    });
-    document.addEventListener('keyup', e => keys[e.code] = false);
+    document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+    document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-    let keys = {};
-
-    // Explosion builder
-    function createExplosion(x, y, color='#f00', count=20) {
-      for (let i=0; i<count; i++) {
+    function createExplosion(x, y, color = '#f00', count = 20) {
+      for (let i = 0; i < count; i++) {
         explosions.push({
-          x, y,
-          dx:(Math.random()-0.5)*5,
-          dy:(Math.random()-0.5)*5,
-          life:40,
-          color
+          x,
+          y,
+          dx: (Math.random() - 0.5) * 5,
+          dy: (Math.random() - 0.5) * 5,
+          life: 40,
+          color,
         });
       }
     }
 
     function updateExplosions() {
-      explosions = explosions.filter(e=>e.life>0);
-      explosions.forEach(e => { e.x += e.dx; e.y += e.dy; e.life--; });
+      explosions = explosions.filter((e) => e.life > 0);
+      explosions.forEach((e) => {
+        e.x += e.dx;
+        e.y += e.dy;
+        e.life--;
+      });
     }
-    function drawExplosions(){
-      explosions.forEach(e => {
+
+    function drawExplosions() {
+      explosions.forEach((e) => {
         ctx.fillStyle = e.color;
         ctx.fillRect(e.x, e.y, 3, 3);
       });
     }
 
-    // Enemy formation builder
-    function createEnemies(){
+    function createEnemies() {
       enemies = [];
       const setups = [
-        {rows:2,cols:8, y0:50, type:'boss', color:'#4080ff', pts:400},
-        {rows:2,cols:10, y0:120, type:'red', color:'#f44', pts:160},
-        {rows:4,cols:10, y0:200, type:'yellow', color:'#ff0', pts:80},
+        { rows: 2, cols: 8, y0: 50, type: 'boss', color: '#4080ff', pts: 400 },
+        { rows: 2, cols: 10, y0: 120, type: 'red', color: '#f44', pts: 160 },
+        { rows: 4, cols: 10, y0: 200, type: 'yellow', color: '#ff0', pts: 80 },
       ];
-      setups.forEach(s => {
-        for (let r=0; r<s.rows; r++){
-          for (let c=0; c<s.cols; c++){
+      setups.forEach((s) => {
+        for (let r = 0; r < s.rows; r++) {
+          for (let c = 0; c < s.cols; c++) {
             enemies.push({
-              x:100 + c*60,
-              y: s.y0 + r*40,
-              ox:100 + c*60,
-              oy:s.y0 + r*40,
-              w:30,h:25,
-              type:s.type, color:s.color, pts:s.pts,
-              alive:true, inForm:true, diving:false,
-              diveSpeed:0, diveAngle:0,
-              shootProb: s.type==='boss'?0.004:0.002
+              x: 100 + c * 60,
+              y: s.y0 + r * 40,
+              ox: 100 + c * 60,
+              oy: s.y0 + r * 40,
+              w: 30,
+              h: 25,
+              type: s.type,
+              color: s.color,
+              pts: s.pts,
+              alive: true,
+              inForm: true,
+              diving: false,
+              diveSpeed: 0,
+              diveAngle: 0,
+              shootProb: s.type === 'boss' ? 0.004 : 0.002,
             });
           }
         }
       });
     }
 
-    // Spawn effect
     function startRespawn() {
       canPlayerControl = false;
-      respawnTimer = 120; // 2 seconds
-      bullets = bullets.filter(b=>false);
-      enemyBullets = enemyBullets.filter(b=>false);
-      enemies.forEach(e=>{
-        if (e.alive) {
-          let dy = e.y - e.oy;
-          e.y = e.oy;
-        }
+      respawnTimer = 120;
+      bullets = [];
+      enemyBullets = [];
+      enemies.forEach((e) => {
+        if (e.alive) e.y = e.oy;
       });
-      player.x = canvas.width/2 - player.w/2;
+      player.x = canvas.width / 2 - player.w / 2;
       player.y = canvas.height - 60;
     }
 
@@ -105,83 +144,86 @@
         respawnTimer--;
         return;
       }
-      if (!canPlayerControl) {
-        canPlayerControl = true;
-      }
+      if (!canPlayerControl) canPlayerControl = true;
     }
-
-    keys = {};
-
-    createEnemies();
-    startRespawn();
 
     function fire() {
       if (!canPlayerControl) return;
       const now = Date.now();
       if (!fire.last || now - fire.last > 200) {
-        bullets.push({ x:player.x+18, y:player.y, w:4, h:10, sp:8, color:'#fff' });
+        bullets.push({ x: player.x + 18, y: player.y, w: 4, h: 10, sp: 8, color: '#fff' });
         fire.last = now;
       }
     }
-    document.addEventListener('keydown', e=>{
-      if (e.code==='Space'){ e.preventDefault(); fire(); }
-      if (e.code==='KeyR'){ resetGame(); }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); fire(); }
+      if (e.code === 'KeyR') { resetGame(); }
     });
 
     function update() {
       respawnUpdate();
 
-      // Player movement
-      if (canPlayerControl){
+      if (canPlayerControl) {
         if (keys['ArrowLeft']) player.x = Math.max(0, player.x - player.speed);
         if (keys['ArrowRight']) player.x = Math.min(canvas.width - player.w, player.x + player.speed);
       }
 
-      bullets = bullets.filter(b=>{ b.y -= b.sp; return b.y+b.h>0; });
-      enemyBullets = enemyBullets.filter(b=>{ b.y += b.sp; return b.y < canvas.height; });
+      bullets = bullets.filter((b) => { b.y -= b.sp; return b.y + b.h > 0; });
+      enemyBullets = enemyBullets.filter((b) => { b.y += b.sp; return b.y < canvas.height; });
 
-      // Enemy movement paused on respawn
-      if (canPlayerControl){
-        enemies.forEach(e=>{
+      if (canPlayerControl) {
+        enemies.forEach((e) => {
           if (!e.alive) return;
-          e.x += 0.2 * ((level/1)* Math.sin(Date.now()/1000));
+          e.x += 0.2 * (level * Math.sin(Date.now() / 1000));
           if (Math.random() < e.shootProb) {
             enemyBullets.push({
-              x:e.x+e.w/2-2, y:e.y+e.h,
-              w:4,h:8, sp:2, color:'#f44'
+              x: e.x + e.w / 2 - 2,
+              y: e.y + e.h,
+              w: 4,
+              h: 8,
+              sp: 2,
+              color: '#f44',
             });
           }
         });
 
-        bullets.forEach((b, bi)=>{
-          enemies.forEach((e, ei)=>{
-            if (e.alive && b.x < e.x + e.w && b.x + b.w > e.x &&
-                b.y < e.y + e.h && b.y + b.h > e.y){
-              bullets.splice(bi,1);
+        bullets.forEach((b, bi) => {
+          enemies.forEach((e) => {
+            if (
+              e.alive &&
+              b.x < e.x + e.w && b.x + b.w > e.x &&
+              b.y < e.y + e.h && b.y + b.h > e.y
+            ) {
+              bullets.splice(bi, 1);
               e.alive = false;
               score += e.pts;
-              createExplosion(e.x + e.w/2, e.y + e.h/2, '#f80');
+              createExplosion(e.x + e.w / 2, e.y + e.h / 2, '#f80');
             }
           });
         });
 
-        enemyBullets.forEach((b, bi)=>{
-          if (b.x < player.x + player.w && b.x + b.w > player.x &&
-              b.y < player.y + player.h && b.y + b.h > player.y){
-            enemyBullets.splice(bi,1);
-            playerDies(); return;
-          }
-        });
-
-        enemies.forEach(e=>{
-          if (e.alive &&
-              e.x < player.x + player.w && e.x + e.w > player.x &&
-              e.y < player.y + player.h && e.y + e.h > player.y){
+        enemyBullets.forEach((b, bi) => {
+          if (
+            b.x < player.x + player.w && b.x + b.w > player.x &&
+            b.y < player.y + player.h && b.y + b.h > player.y
+          ) {
+            enemyBullets.splice(bi, 1);
             playerDies();
           }
         });
 
-        if (!enemies.some(e=>e.alive)){
+        enemies.forEach((e) => {
+          if (
+            e.alive &&
+            e.x < player.x + player.w && e.x + e.w > player.x &&
+            e.y < player.y + player.h && e.y + e.h > player.y
+          ) {
+            playerDies();
+          }
+        });
+
+        if (!enemies.some((e) => e.alive)) {
           level++;
           createEnemies();
           startRespawn();
@@ -193,18 +235,17 @@
 
     function playerDies() {
       if (!canPlayerControl) return;
-      createExplosion(player.x + player.w/2, player.y + player.h/2, '#ff0', 40);
+      createExplosion(player.x + player.w / 2, player.y + player.h / 2, '#ff0', 40);
       lives--;
-      if (lives > 0) {
-        startRespawn();
-      } else {
-        canPlayerControl = false;
-      }
+      bullets = [];
+      enemyBullets = [];
+      if (lives > 0) startRespawn();
+      canPlayerControl = lives > 0;
       updateInfo();
     }
 
     function drawPlayer() {
-      if (respawnTimer > 0){
+      if (respawnTimer > 0) {
         const t = respawnTimer / 120;
         ctx.globalAlpha = 1 - t;
         if (Math.floor(respawnTimer / 10) % 2 === 0) {
@@ -212,14 +253,14 @@
           ctx.fillRect(player.x, player.y, player.w, player.h);
         }
         ctx.globalAlpha = 1;
-      } else if (canPlayerControl){
+      } else if (canPlayerControl) {
         ctx.fillStyle = player.color;
         ctx.fillRect(player.x, player.y, player.w, player.h);
       }
     }
 
-    function drawEnemies(){
-      enemies.forEach(e=>{
+    function drawEnemies() {
+      enemies.forEach((e) => {
         if (!e.alive) return;
         ctx.fillStyle = e.color;
         ctx.fillRect(e.x, e.y, e.w, e.h);
@@ -228,33 +269,39 @@
 
     function draw() {
       ctx.fillStyle = '#000';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       drawPlayer();
-      bullets.forEach(b=>{
-        ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      bullets.forEach((b) => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
       });
-      enemyBullets.forEach(b=>{
-        ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h);
+      enemyBullets.forEach((b) => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
       });
       drawEnemies();
       drawExplosions();
     }
 
-    function loop(){
+    function loop() {
       update();
       draw();
       requestAnimationFrame(loop);
     }
 
-    function updateInfo(){
+    function updateInfo() {
       document.getElementById('score').textContent = score;
       document.getElementById('lives').textContent = lives;
       document.getElementById('level').textContent = level;
     }
 
-    function resetGame(){
-      score = 0; lives = 3; level = 1;
-      bullets = []; enemyBullets = []; explosions = [];
+    function resetGame() {
+      score = 0;
+      lives = 3;
+      level = 1;
+      bullets = [];
+      enemyBullets = [];
+      explosions = [];
       createEnemies();
       startRespawn();
       updateInfo();
