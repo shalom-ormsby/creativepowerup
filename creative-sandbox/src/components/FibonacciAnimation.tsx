@@ -7,10 +7,6 @@ export default function FibonacciAnimation() {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
-    console.log('Fibonacci: useEffect started');
-    console.log('Fibonacci: groupRef.current', groupRef.current);
-    console.log('Fibonacci: svgRef.current', svgRef.current);
-
     const svgNS = "http://www.w3.org/2000/svg";
     const maxDots = 1000;
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -22,10 +18,7 @@ export default function FibonacciAnimation() {
 
     function animateDots(multiplier: number) {
       if (!isRunning) return;
-      if (!groupRef.current) {
-        console.error('Fibonacci: groupRef.current is null in animateDots');
-        return;
-      }
+      if (!groupRef.current) return;
 
       if (direction === 1 && n < maxDots) {
         const angle = n * goldenAngle;
@@ -38,6 +31,9 @@ export default function FibonacciAnimation() {
         dot.setAttribute("cy", y.toString());
         dot.setAttribute("r", "0");
 
+        // Add CSS transition for smooth animation
+        dot.style.transition = "r 0.3s ease-out";
+
         const progress = n / maxDots;
         const r = Math.round(255 + (254 - 255) * progress);
         const g = Math.round(214 + (72 - 214) * progress);
@@ -48,23 +44,26 @@ export default function FibonacciAnimation() {
         groupRef.current.appendChild(dot);
         dots.push(dot);
 
-        // Set radius directly instead of using Web Animations API
-        // which may not work on all mobile browsers
-        dot.setAttribute("r", "5");
-
-        if (n % 100 === 0) {
-          console.log(`Fibonacci: Created ${n} dots`);
-        }
+        // Trigger animation by setting radius after a brief delay
+        requestAnimationFrame(() => {
+          dot.setAttribute("r", "5");
+        });
 
         n++;
       } else if (direction === -1 && dots.length > 0) {
         const dot = dots.pop();
         if (!dot) return;
 
-        // Remove directly instead of animating
-        if (groupRef.current && groupRef.current.contains(dot)) {
-          groupRef.current.removeChild(dot);
-        }
+        // Animate shrinking with CSS transition
+        dot.style.transition = "r 0.3s ease-in";
+        dot.setAttribute("r", "0");
+
+        // Remove after animation completes
+        setTimeout(() => {
+          if (groupRef.current && groupRef.current.contains(dot)) {
+            groupRef.current.removeChild(dot);
+          }
+        }, 300);
 
         n--;
       } else {
@@ -115,12 +114,9 @@ export default function FibonacciAnimation() {
         height: '98vmin',
         display: 'block',
         maxWidth: '98vw',
-        maxHeight: '98vh',
-        border: '2px solid red' // Debug: make SVG visible
+        maxHeight: '98vh'
       }}
     >
-      {/* Test circle to verify SVG renders */}
-      <circle cx={center} cy={center} r="20" fill="yellow" />
       <g ref={groupRef} transform={`translate(${center}, ${center})`} />
     </svg>
   );
