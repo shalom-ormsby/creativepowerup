@@ -1,10 +1,23 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function FibonacciAnimation() {
   const groupRef = useRef<SVGGElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [size, setSize] = useState(500);
+
+  useEffect(() => {
+    const updateSize = () => {
+      const minDimension = Math.min(window.innerWidth, window.innerHeight);
+      const newSize = Math.floor(minDimension * 0.9); // 90% of viewport
+      setSize(newSize);
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   useEffect(() => {
     const svgNS = "http://www.w3.org/2000/svg";
@@ -78,9 +91,18 @@ export default function FibonacciAnimation() {
     requestAnimationFrame(() => animateDots(1));
   }, []);
 
+  const viewBoxSize = 500;
+  const center = viewBoxSize / 2;
+
   return (
-    <svg ref={svgRef} width="500" height="500" viewBox="0 0 500 500">
-      <g ref={groupRef} transform="translate(250, 250)" />
+    <svg
+      ref={svgRef}
+      width={size}
+      height={size}
+      viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+      style={{ maxWidth: '90vmin', maxHeight: '90vmin' }}
+    >
+      <g ref={groupRef} transform={`translate(${center}, ${center})`} />
     </svg>
   );
 }
