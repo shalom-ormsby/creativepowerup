@@ -48,28 +48,23 @@ export default function FibonacciAnimation() {
         groupRef.current.appendChild(dot);
         dots.push(dot);
 
-        dot.animate([{ r: "0" }, { r: "5" }], {
-          duration: 300,
-          easing: "ease-out",
-          fill: "forwards"
-        });
+        // Set radius directly instead of using Web Animations API
+        // which may not work on all mobile browsers
+        dot.setAttribute("r", "5");
+
+        if (n % 100 === 0) {
+          console.log(`Fibonacci: Created ${n} dots`);
+        }
 
         n++;
       } else if (direction === -1 && dots.length > 0) {
         const dot = dots.pop();
         if (!dot) return;
 
-        const shrinkAnim = dot.animate([{ r: "5" }, { r: "0" }], {
-          duration: 300,
-          easing: "ease-in",
-          fill: "forwards"
-        });
-
-        shrinkAnim.onfinish = () => {
-          if (groupRef.current && groupRef.current.contains(dot)) {
-            groupRef.current.removeChild(dot);
-          }
-        };
+        // Remove directly instead of animating
+        if (groupRef.current && groupRef.current.contains(dot)) {
+          groupRef.current.removeChild(dot);
+        }
 
         n--;
       } else {
