@@ -29,7 +29,6 @@ export default function MayanCalendarConverter() {
     // Data Source: 'Mayan to Gregorian Calendar Conversion - 2024.csv'
     // Date: January 1, 2024
     // Value: 2 Q'anil
-    const anchorDate = new Date(2024, 0, 1); // Month is 0-indexed in JS
     const anchorTone = 2;
     const anchorSignName = "Q'anil";
 
@@ -43,33 +42,35 @@ export default function MayanCalendarConverter() {
     }
 
     const yearNum = parseInt(parts[0]);
-    const monthNum = parseInt(parts[1]) - 1; // Month is 0-indexed in JS
+    const monthNum = parseInt(parts[1]);
     const dayNum = parseInt(parts[2]);
 
     if (isNaN(yearNum) || isNaN(monthNum) || isNaN(dayNum)) {
       throw new Error('Invalid date values');
     }
 
-    const targetDate = new Date(yearNum, monthNum, dayNum);
-
-    // Check if the date is valid
-    if (targetDate.getFullYear() !== yearNum ||
-        targetDate.getMonth() !== monthNum ||
-        targetDate.getDate() !== dayNum) {
+    // Validate date ranges
+    if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
       throw new Error('Invalid date');
     }
 
-    // Calculate the Delta (Difference in days)
-    const delta = Math.floor((targetDate.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24));
+    // Calculate the Delta (Difference in days) using UTC to avoid timezone issues
+    // This ensures consistent calculation regardless of daylight saving time
+    const anchorDateUTC = Date.UTC(2024, 0, 1); // Jan 1, 2024
+    const targetDateUTC = Date.UTC(yearNum, monthNum - 1, dayNum); // Month is 0-indexed in Date.UTC
+
+    // Calculate day difference
+    const delta = Math.round((targetDateUTC - anchorDateUTC) / (1000 * 60 * 60 * 24));
+
+    // Helper function for proper modulo with negative numbers
+    const mod = (n: number, m: number): number => ((n % m) + m) % m;
 
     // Calculate the New Tone (Number 1-13)
-    // Math: (Start_Tone + Days_Diff - 1) % 13 + 1
-    // JavaScript modulo can return negative values, so we use this helper
-    const mod = (n: number, m: number) => ((n % m) + m) % m;
+    // Formula: (Start_Tone + Days_Diff - 1) % 13 + 1
     const currentTone = mod(anchorTone + delta - 1, 13) + 1;
 
     // Calculate the New Sign (Index 0-19)
-    // Math: (Start_Index + Days_Diff) % 20
+    // Formula: (Start_Index + Days_Diff) % 20
     const currentSignIndex = mod(anchorSignIndex + delta, 20);
 
     const currentSign = daySignsMap[currentSignIndex];
@@ -82,14 +83,10 @@ export default function MayanCalendarConverter() {
   };
 
   const handleConvert = () => {
-    console.log('handleConvert called');
-    console.log('Year:', year, 'Month:', month, 'Day:', day);
-
     setError('');
     setResult(null);
 
     if (!year || !month || !day) {
-      console.log('Missing fields');
       setError('Please fill in all fields');
       return;
     }
@@ -98,14 +95,11 @@ export default function MayanCalendarConverter() {
     const paddedMonth = month.padStart(2, '0');
     const paddedDay = day.padStart(2, '0');
     const dateString = `${year}/${paddedMonth}/${paddedDay}`;
-    console.log('Date string:', dateString);
 
     try {
       const nahuatResult = getMayanNahual(dateString);
-      console.log('Result:', nahuatResult);
       setResult(nahuatResult);
     } catch (e) {
-      console.error('Conversion error:', e);
       setError(e instanceof Error ? e.message : 'Error converting date');
     }
   };
