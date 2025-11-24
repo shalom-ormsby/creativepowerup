@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 export default function FibonacciAnimation() {
   const groupRef = useRef<SVGGElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [size, setSize] = useState(500);
+  const [size, setSize] = useState(0);
 
   useEffect(() => {
     const updateSize = () => {
@@ -20,14 +20,19 @@ export default function FibonacciAnimation() {
   }, []);
 
   useEffect(() => {
+    if (size === 0) return; // Wait for size to be calculated
+
     const svgNS = "http://www.w3.org/2000/svg";
     const maxDots = 1000;
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     const dots: SVGCircleElement[] = [];
     let n = 0;
     let direction = 1; // 1 = growing, -1 = shrinking
+    let timeoutId: number | null = null;
+    let isRunning = true;
 
     function animateDots(multiplier: number) {
+      if (!isRunning) return;
       if (!groupRef.current) return;
 
       if (direction === 1 && n < maxDots) {
@@ -90,7 +95,11 @@ export default function FibonacciAnimation() {
       const maxDelay = 15;
       const baseDelay = minDelay + (maxDelay - minDelay) * (1 - easedProgress);
 
-      setTimeout(() => requestAnimationFrame(() => animateDots(direction === -1 ? 2 : 1)), baseDelay);
+      timeoutId = window.setTimeout(() => {
+        if (isRunning) {
+          requestAnimationFrame(() => animateDots(direction === -1 ? 2 : 1));
+        }
+      }, baseDelay);
     }
 
     if (svgRef.current) {
@@ -98,10 +107,21 @@ export default function FibonacciAnimation() {
     }
 
     requestAnimationFrame(() => animateDots(1));
-  }, []);
+
+    return () => {
+      isRunning = false;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [size]);
 
   const viewBoxSize = 500;
   const center = viewBoxSize / 2;
+
+  if (size === 0) {
+    return null; // Don't render until size is calculated
+  }
 
   return (
     <svg
@@ -109,6 +129,7 @@ export default function FibonacciAnimation() {
       width={size}
       height={size}
       viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+      style={{ display: 'block' }}
     >
       <g ref={groupRef} transform={`translate(${center}, ${center})`} />
     </svg>
