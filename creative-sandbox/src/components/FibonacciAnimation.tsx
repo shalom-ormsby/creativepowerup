@@ -51,7 +51,7 @@ export default function FibonacciAnimation() {
         groupRef.current.appendChild(dot);
         dots.push(dot);
 
-        dot.animate([{ r: "0" }, { r: "2.5" }], {
+        dot.animate([{ r: "0" }, { r: "5" }], {
           duration: 300,
           easing: "ease-out",
           fill: "forwards"
@@ -62,7 +62,7 @@ export default function FibonacciAnimation() {
         const dot = dots.pop();
         if (!dot) return;
 
-        const shrinkAnim = dot.animate([{ r: "2.5" }, { r: "0" }], {
+        const shrinkAnim = dot.animate([{ r: "5" }, { r: "0" }], {
           duration: 300,
           easing: "ease-in",
           fill: "forwards"
