@@ -56,7 +56,7 @@ export default function FibonacciAnimation() {
         });
 
         shrinkAnim.onfinish = () => {
-          if (groupRef.current && dot.parentElement === groupRef.current) {
+          if (groupRef.current && groupRef.current.contains(dot)) {
             groupRef.current.removeChild(dot);
           }
         };
