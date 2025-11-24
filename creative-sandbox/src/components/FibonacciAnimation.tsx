@@ -10,7 +10,7 @@ export default function FibonacciAnimation() {
   useEffect(() => {
     const updateSize = () => {
       const minDimension = Math.min(window.innerWidth, window.innerHeight);
-      const newSize = Math.floor(minDimension * 0.9); // 90% of viewport
+      const newSize = Math.floor(minDimension * 0.98); // 98% of viewport
       setSize(newSize);
     };
 
@@ -32,7 +32,7 @@ export default function FibonacciAnimation() {
 
       if (direction === 1 && n < maxDots) {
         const angle = n * goldenAngle;
-        const radius = Math.sqrt(n) * 4;
+        const radius = Math.sqrt(n) * 7.5; // Increased multiplier to fill viewport
         const x = radius * Math.cos(angle);
         const y = radius * Math.sin(angle);
 
@@ -79,9 +79,18 @@ export default function FibonacciAnimation() {
         direction *= -1;
       }
 
-      const minDelay = 10;
-      const maxDelay = 30;
-      setTimeout(() => requestAnimationFrame(() => animateDots(direction === -1 ? 2 : 1)), minDelay + Math.random() * (maxDelay - minDelay));
+      // Breathing effect: easing based on progress
+      const progress = n / maxDots;
+      // Use ease-in-out: slow at start/end, fast in middle
+      const easedProgress = direction === 1
+        ? 1 - Math.pow(1 - progress, 2) // Ease-out when growing
+        : Math.pow(progress, 2); // Ease-in when shrinking
+
+      const minDelay = 2;
+      const maxDelay = 15;
+      const baseDelay = minDelay + (maxDelay - minDelay) * (1 - easedProgress);
+
+      setTimeout(() => requestAnimationFrame(() => animateDots(direction === -1 ? 2 : 1)), baseDelay);
     }
 
     if (svgRef.current) {
@@ -100,7 +109,6 @@ export default function FibonacciAnimation() {
       width={size}
       height={size}
       viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-      style={{ maxWidth: '90vmin', maxHeight: '90vmin' }}
     >
       <g ref={groupRef} transform={`translate(${center}, ${center})`} />
     </svg>
